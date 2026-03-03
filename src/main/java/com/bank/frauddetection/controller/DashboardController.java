@@ -9,7 +9,6 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Controller
@@ -34,7 +33,6 @@ public class DashboardController {
         model.addAttribute("fraudCount", fraudCount);
         model.addAttribute("safeCount", safeCount);
 
-        // 🔥 ADD THIS
         model.addAttribute("transaction", new Transaction());
 
         return "dashboard";
@@ -47,28 +45,20 @@ public class DashboardController {
             BindingResult result,
             Model model) {
 
-        // Validation errors aaye to dashboard wapas load karo
         if (result.hasErrors()) {
 
-            model.addAttribute("transactions", transactionService.getAll());
-            model.addAttribute("totalTransactions", transactionService.getAll().size());
-            model.addAttribute("fraudCount", transactionService.getFraudTransactions().size());
-            model.addAttribute("safeCount",
-                    transactionService.getAll().size() - transactionService.getFraudTransactions().size());
+            List<Transaction> transactions = transactionService.getAll();
+            List<Transaction> fraudTransactions = transactionService.getFraudTransactions();
+
+            model.addAttribute("transactions", transactions);
+            model.addAttribute("totalTransactions", transactions.size());
+            model.addAttribute("fraudCount", fraudTransactions.size());
+            model.addAttribute("safeCount", transactions.size() - fraudTransactions.size());
 
             return "dashboard";
         }
 
-        transaction.setTransactionTime(LocalDateTime.now());
-
-        if (transaction.getRiskScore() >= 70) {
-            transaction.setStatus("FRAUD");
-        } else if (transaction.getRiskScore() >= 40) {
-            transaction.setStatus("SUSPICIOUS");
-        } else {
-            transaction.setStatus("NORMAL");
-        }
-
+        // 🔥 ONLY THIS LINE NEEDED NOW
         transactionService.createTransaction(transaction);
 
         return "redirect:/dashboard";

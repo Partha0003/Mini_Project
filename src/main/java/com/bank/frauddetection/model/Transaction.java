@@ -13,38 +13,32 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ✅ ACCOUNT NUMBER VALIDATION
     @NotBlank(message = "Account number is required")
-    @Size(min = 8, max = 8, message = "Account number must be exactly 8 characters")
+    @Size(min = 8, max = 8)
     @Pattern(
             regexp = "^[A-Z]{4}[0-9A-F]{4}$",
-            message = "Account number must be 4 letters followed by 4 hexadecimal characters (Example: ABCD1A2F)"
+            message = "Account number must be 4 letters followed by 4 hexadecimal characters"
     )
     @Column(nullable = false, length = 8)
     private String accountNumber;
 
-    // ✅ AMOUNT VALIDATION
-    @NotNull(message = "Amount is required")
-    @Positive(message = "Amount must be greater than 0")
+    @NotNull
+    @Positive
     @Column(nullable = false)
     private Double amount;
 
-    // ✅ LOCATION VALIDATION
-    @NotBlank(message = "Location is required")
+    @NotBlank
     private String location;
 
-    // Auto time
     private LocalDateTime transactionTime;
 
     private String status;
 
-    // ✅ RISK SCORE VALIDATION
-    @NotNull(message = "Risk score is required")
-    @Min(value = 0, message = "Risk score must be at least 0")
-    @Max(value = 100, message = "Risk score must not exceed 100")
     private Integer riskScore;
 
-    // Automatically set time before saving
+    // ✅ NEW FIELD
+    private String fraudReason;
+
     @PrePersist
     public void prePersist() {
         if (this.transactionTime == null) {
@@ -54,61 +48,38 @@ public class Transaction {
 
     // ===== GETTERS & SETTERS =====
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
 
-    public String getAccountNumber() {
-        return accountNumber;
-    }
+    public void setId(Long id) { this.id = id; }
+
+    public String getAccountNumber() { return accountNumber; }
 
     public void setAccountNumber(String accountNumber) {
-        if (accountNumber != null) {
-            this.accountNumber = accountNumber.toUpperCase(); // 🔥 auto uppercase
-        }
+        if (accountNumber != null)
+            this.accountNumber = accountNumber.toUpperCase();
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Double getAmount() { return amount; }
 
-    public Double getAmount() {
-        return amount;
-    }
+    public void setAmount(Double amount) { this.amount = amount; }
 
-    public void setAmount(Double amount) {
-        this.amount = amount;
-    }
+    public String getLocation() { return location; }
 
-    public String getLocation() {
-        return location;
-    }
+    public void setLocation(String location) { this.location = location; }
 
-    public void setLocation(String location) {
-        this.location = location;
-    }
+    public LocalDateTime getTransactionTime() { return transactionTime; }
 
-    public LocalDateTime getTransactionTime() {
-        return transactionTime;
-    }
+    public void setTransactionTime(LocalDateTime transactionTime) { this.transactionTime = transactionTime; }
 
-    public void setTransactionTime(LocalDateTime transactionTime) {
-        this.transactionTime = transactionTime;
-    }
+    public String getStatus() { return status; }
 
-    public String getStatus() {
-        return status;
-    }
+    public void setStatus(String status) { this.status = status; }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    public Integer getRiskScore() { return riskScore; }
 
-    public Integer getRiskScore() {
-        return riskScore;
-    }
+    public void setRiskScore(Integer riskScore) { this.riskScore = riskScore; }
 
-    public void setRiskScore(Integer riskScore) {
-        this.riskScore = riskScore;
-    }
+    public String getFraudReason() { return fraudReason; }
+
+    public void setFraudReason(String fraudReason) { this.fraudReason = fraudReason; }
 }

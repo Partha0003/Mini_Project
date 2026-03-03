@@ -22,13 +22,8 @@ public class FraudDetectionService {
     @Autowired
     private FraudLogRepository fraudLogRepository;
 
-    // RULE 1: High Amount
     private static final double HIGH_AMOUNT = 50000;
-
-    // RULE 2: Rapid Transactions
     private static final int RAPID_TX_LIMIT = 3;
-
-    // RULE 3: Time Window (minutes)
     private static final int TIME_WINDOW = 2;
 
     @Value("${fraud.ml.enabled:false}")
@@ -37,9 +32,6 @@ public class FraudDetectionService {
     @Autowired(required = false)
     private FraudMLPlugin mlPlugin;
 
-    /**
-     * 🔥 MAIN ENTRY
-     */
     public int calculateRisk(Transaction tx) {
 
         int ruleRisk = calculateRuleBasedRisk(tx);
@@ -52,20 +44,14 @@ public class FraudDetectionService {
         return Math.min(ruleRisk + mlRisk, 100);
     }
 
-    /**
-     * 🔹 Rule Based Anomaly Detection Core
-     */
     private int calculateRuleBasedRisk(Transaction tx) {
 
         int riskScore = 0;
 
-        // 🔴 RULE 1: High Amount Transaction
         if (tx.getAmount() > HIGH_AMOUNT) {
             riskScore += 50;
-            log(tx, "HIGH_AMOUNT_TRANSACTION", riskScore);
         }
 
-        // 🔴 RULE 2: Rapid Multiple Transactions
         List<Transaction> recentTransactions =
                 transactionRepository.findByAccountNumberAndTransactionTimeAfter(
                         tx.getAccountNumber(),
@@ -74,10 +60,8 @@ public class FraudDetectionService {
 
         if (recentTransactions.size() >= RAPID_TX_LIMIT) {
             riskScore += 30;
-            log(tx, "RAPID_MULTIPLE_TRANSACTIONS", riskScore);
         }
 
-        //  RULE 3: Location Mismatch
         List<Transaction> pastTransactions =
                 transactionRepository.findByAccountNumber(tx.getAccountNumber());
 
@@ -87,16 +71,12 @@ public class FraudDetectionService {
 
             if (!lastLocation.equalsIgnoreCase(tx.getLocation())) {
                 riskScore += 20;
-                log(tx, "LOCATION_MISMATCH", riskScore);
             }
         }
 
         return riskScore;
     }
 
-    /**
-     * 🔹 Final Fraud Status
-     */
     public FraudStatus detectStatus(int riskScore) {
 
         if (riskScore >= 70) {
@@ -108,16 +88,16 @@ public class FraudDetectionService {
         }
     }
 
-    /**
-     * 🔹 Fraud Logging
-     */
-    private void log(Transaction tx, String rule, int score) {
+    // ✅ NEW METHOD
+    public String generateReason(Transaction tx, int riskScore) {
 
-        FraudLog log = new FraudLog(
-                tx.getId(),
-                rule,
-                score
-        );
-        fraudLogRepository.save(log);
+        if (riskScore >= 70)
+            return "High risk: Large amount or unusual behavior detected";
+
+        else if (riskScore >= 30)
+            return "Moderate risk: Suspicious transaction pattern";
+
+        else
+            return "Normal transaction within safe limits";
     }
 }
