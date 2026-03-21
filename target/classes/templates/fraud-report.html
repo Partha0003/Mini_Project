@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <title>Fraud Transactions Report</title>
 
@@ -62,7 +62,7 @@
      class="alert alert-info mt-3">
     No fraud transactions found.
 </div>
-<div class="container mt-3">
+<div class="container mt-3" sec:authorize="hasRole('ADMIN')">
     <a th:href="@{/download-fraud-report}" class="btn btn-danger">
         Download Fraud Report (Excel)
     </a>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <title>Fraud Detection Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
@@ -98,6 +98,7 @@
                     <th>Status</th>
                     <th>Risk</th>
                     <th>Reason</th>
+                    <th>Rules</th>
                     <th>Time</th>
                     <th>Action</th>
                 </tr>
@@ -115,15 +116,21 @@
                     <td th:text="${txn.location}"></td>
                     <td th:text="${txn.status}"></td>
                     <td th:text="${txn.riskScore}"></td>
-                    <td th:text="${txn.fraudReason}"></td>
+                    <td th:utext="${#strings.replace(txn.fraudReason, '\n', '<br/>')}"></td>
+                    <td>
+                        <span class="badge bg-info text-dark"
+                              th:text="${ruleCountMap[txn.id] != null ? ruleCountMap[txn.id] + ' rules' : '0 rules'}">
+                        </span>
+                    </td>
                     <td th:text="${txn.transactionTime}"></td>
 
-                    <td>
+                    <td sec:authorize="hasRole('ADMIN')">
                         <a th:href="@{/transaction/delete/{id}(id=${txn.id})}"
                            class="btn btn-sm btn-danger">
                             Delete
                         </a>
                     </td>
+                    <td sec:authorize="!hasRole('ADMIN')">-</td>
 
                 </tr>
 

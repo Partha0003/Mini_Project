@@ -19,11 +19,16 @@ public class ExcelReportService {
     private TransactionService transactionService;
 
     public void generateFraudReport(HttpServletResponse response) throws IOException {
-
         List<Transaction> fraudList = transactionService.getFraudTransactions();
+        generateTransactionReport(response, fraudList, "Fraud Transactions");
+    }
 
+    public void generateTransactionReport(
+            HttpServletResponse response,
+            List<Transaction> transactions,
+            String sheetName) throws IOException {
         XSSFWorkbook workbook = new XSSFWorkbook();
-        XSSFSheet sheet = workbook.createSheet("Fraud Transactions");
+        XSSFSheet sheet = workbook.createSheet(sheetName);
 
         int rowNum = 0;
 
@@ -36,7 +41,7 @@ public class ExcelReportService {
         header.createCell(4).setCellValue("Status");
 
         // Data Rows
-        for (Transaction tx : fraudList) {
+        for (Transaction tx : transactions) {
             Row row = sheet.createRow(rowNum++);
             row.createCell(0).setCellValue(tx.getAccountNumber());
             row.createCell(1).setCellValue(tx.getAmount());

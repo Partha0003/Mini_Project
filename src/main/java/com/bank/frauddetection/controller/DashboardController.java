@@ -4,12 +4,14 @@ import com.bank.frauddetection.model.Transaction;
 import com.bank.frauddetection.service.TransactionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class DashboardController {
@@ -27,11 +29,13 @@ public class DashboardController {
         int totalTransactions = transactions.size();
         int fraudCount = fraudTransactions.size();
         int safeCount = totalTransactions - fraudCount;
+        Map<Long, Long> ruleCountMap = transactionService.getRuleCountMap(transactions);
 
         model.addAttribute("transactions", transactions);
         model.addAttribute("totalTransactions", totalTransactions);
         model.addAttribute("fraudCount", fraudCount);
         model.addAttribute("safeCount", safeCount);
+        model.addAttribute("ruleCountMap", ruleCountMap);
 
         model.addAttribute("transaction", new Transaction());
 
@@ -54,6 +58,7 @@ public class DashboardController {
             model.addAttribute("totalTransactions", transactions.size());
             model.addAttribute("fraudCount", fraudTransactions.size());
             model.addAttribute("safeCount", transactions.size() - fraudTransactions.size());
+            model.addAttribute("ruleCountMap", transactionService.getRuleCountMap(transactions));
 
             return "dashboard";
         }
@@ -88,6 +93,7 @@ public class DashboardController {
     }
 
     // ================= DELETE =================
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/transaction/delete/{id}")
     public String deleteTransaction(@PathVariable Long id) {
         transactionService.deleteTransaction(id);

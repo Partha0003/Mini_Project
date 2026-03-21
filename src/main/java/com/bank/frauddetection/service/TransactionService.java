@@ -1,12 +1,29 @@
 package com.bank.frauddetection.service;
 
+import com.bank.frauddetection.dto.FraudCheckResult;
+import com.bank.frauddetection.dto.FraudRuleResult;
+import com.bank.frauddetection.dto.TransactionFilterDTO;
+import com.bank.frauddetection.model.FraudLog;
 import com.bank.frauddetection.model.FraudStatus;
 import com.bank.frauddetection.model.Transaction;
+import com.bank.frauddetection.repository.FraudLogRepository;
 import com.bank.frauddetection.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
@@ -17,23 +34,28 @@ public class TransactionService {
     @Autowired
     private FraudDetectionService fraudDetectionService;
 
+    @Autowired
+    private FraudLogRepository fraudLogRepository;
+
     public List<Transaction> getAll() {
         return transactionRepository.findAll();
     }
 
     public Transaction createTransaction(Transaction transaction) {
+        FraudCheckResult checkResult = fraudDetectionService.analyzeTransaction(transaction);
+        int riskScore = checkResult.getTotalRisk();
 
-        // Calculate Risk in Backend
-        int riskScore = fraudDetectionService.calculateRisk(transaction);
         transaction.setRiskScore(riskScore);
 
         FraudStatus status = fraudDetectionService.detectStatus(riskScore);
         transaction.setStatus(status.name());
 
-        String reason = fraudDetectionService.generateReason(transaction, riskScore);
+        String reason = fraudDetectionService.generateReason(checkResult);
         transaction.setFraudReason(reason);
 
-        return transactionRepository.save(transaction);
+        Transaction saved = transactionRepository.save(transaction);
+        persistFraudRuleLogs(saved.getId(), checkResult.getRuleResults());
+        return saved;
     }
 
     public void deleteTransaction(Long id) {
@@ -50,5 +72,100 @@ public class TransactionService {
 
     public List<Transaction> getNormalTransactions() {
         return transactionRepository.findByStatus("NORMAL");
+    }
+
+    public Map<Long, Long> getRuleCountMap(List<Transaction> transactions) {
+        if (transactions == null || transactions.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Long> txIds = transactions.stream()
+                .map(Transaction::getId)
+                .filter(id -> id != null)
+                .collect(Collectors.toList());
+
+        if (txIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<Long, Long> result = new HashMap<>();
+        List<FraudLogRepository.RuleCountProjection> counts =
+                fraudLogRepository.countRulesByTransactionIds(txIds);
+        for (FraudLogRepository.RuleCountProjection row : counts) {
+            if (row.getTransactionId() != null && row.getRuleCount() != null) {
+                result.put(row.getTransactionId(), row.getRuleCount());
+            }
+        }
+        return result;
+    }
+
+    public Page<Transaction> getFilteredTransactions(TransactionFilterDTO filter, Pageable pageable) {
+        return transactionRepository.findAll(buildFilterSpecification(filter), pageable);
+    }
+
+    public List<Transaction> getFilteredTransactions(TransactionFilterDTO filter) {
+        return transactionRepository.findAll(
+                buildFilterSpecification(filter),
+                Sort.by(Sort.Direction.DESC, "transactionTime")
+        );
+    }
+
+    private Specification<Transaction> buildFilterSpecification(TransactionFilterDTO filter) {
+        return (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+
+            if (filter != null) {
+                if (hasText(filter.getStatus())) {
+                    predicates.add(cb.equal(root.get("status"), filter.getStatus()));
+                }
+
+                if (hasText(filter.getAccountNumber())) {
+                    String likeValue = "%" + filter.getAccountNumber().trim().toUpperCase() + "%";
+                    predicates.add(cb.like(cb.upper(root.get("accountNumber")), likeValue));
+                }
+
+                if (filter.getFromDate() != null) {
+                    LocalDateTime from = filter.getFromDate().atStartOfDay();
+                    predicates.add(cb.greaterThanOrEqualTo(root.get("transactionTime"), from));
+                }
+
+                if (filter.getToDate() != null) {
+                    LocalDateTime to = filter.getToDate().atTime(23, 59, 59);
+                    predicates.add(cb.lessThanOrEqualTo(root.get("transactionTime"), to));
+                }
+            }
+
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private void persistFraudRuleLogs(Long transactionId, List<FraudRuleResult> rules) {
+        if (transactionId == null || rules == null || rules.isEmpty()) {
+            return;
+        }
+
+        List<FraudLog> logs = new ArrayList<>();
+        Set<String> uniqueRuleNames = new HashSet<>();
+
+        for (FraudRuleResult rule : rules) {
+            if (rule == null || rule.getRiskContribution() <= 0 || !hasText(rule.getRuleName())) {
+                continue;
+            }
+
+            String ruleName = rule.getRuleName().trim();
+            if (!uniqueRuleNames.add(ruleName)) {
+                continue;
+            }
+
+            logs.add(new FraudLog(transactionId, ruleName, rule.getRiskContribution()));
+        }
+
+        if (!logs.isEmpty()) {
+            fraudLogRepository.saveAll(logs);
+        }
     }
 }

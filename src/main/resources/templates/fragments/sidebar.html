@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 
 <div th:fragment="sidebar">
@@ -9,6 +9,12 @@
             <li class="nav-item">
                 <a class="nav-link text-white" th:href="@{/dashboard}">
                     Dashboard
+                </a>
+            </li>
+
+            <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                <a class="nav-link text-info" th:href="@{/admin/dashboard}">
+                    Admin Dashboard
                 </a>
             </li>
 
@@ -31,9 +37,11 @@
             </li>
 
             <li class="nav-item mt-3">
-                <a class="nav-link text-white" th:href="@{/logout}">
-                    Logout
-                </a>
+                <form th:action="@{/logout}" method="post" class="m-0 p-0">
+                    <button type="submit" class="nav-link text-white btn btn-link p-0 text-start">
+                        Logout
+                    </button>
+                </form>
             </li>
 
         </ul>
