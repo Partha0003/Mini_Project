@@ -17,7 +17,11 @@ body {
 .login-card {
     background: white;
     padding: 56px;
-    width: min(94vw, 640px);
+    width: min(92vw, 560px);
+    min-height: 560px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     border-radius: 12px;
     box-shadow: 0 8px 25px rgba(0,0,0,0.3);
     text-align: center;
@@ -25,31 +29,35 @@ body {
 
 .login-card h2 {
     margin-bottom: 5px;
+    font-size: 36px;
+    font-weight: 700;
 }
 
 .subtitle {
-    font-size: 14px;
+    font-size: 18px;
     color: gray;
-    margin-bottom: 20px;
+    margin-bottom: 28px;
 }
 
 .login-card input {
     width: 100%;
-    padding: 12px;
-    margin: 10px 0;
+    padding: 16px;
+    margin: 12px 0;
     border-radius: 6px;
     border: 1px solid #ccc;
+    font-size: 18px;
 }
 
 .login-card button {
     width: 100%;
-    padding: 12px;
+    padding: 16px;
     background-color: #243b55;
     color: white;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 20px;
+    font-weight: 600;
 }
 
 .login-card button:hover {

@@ -33,6 +33,28 @@ public class ReportController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/download-suspicious-report")
+    public void downloadSuspiciousReport(HttpServletResponse response) throws IOException {
+
+        response.setContentType("application/octet-stream");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=suspicious_report.xlsx");
+
+        excelReportService.generateSuspiciousReport(response);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/download-normal-report")
+    public void downloadNormalReport(HttpServletResponse response) throws IOException {
+
+        response.setContentType("application/octet-stream");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=normal_report.xlsx");
+
+        excelReportService.generateNormalReport(response);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/export/excel")
     public void downloadFilteredTransactions(
             @ModelAttribute TransactionFilterDTO filter,

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <title>Suspicious Transactions</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -88,6 +88,11 @@
        th:classappend="${!hasNext} ? ' disabled'"
        th:href="@{/suspicious-report(page=${currentPage + 1},size=${pageSize},sortBy=${sortBy},dir=${dir})}">
         Next
+    </a>
+</div>
+<div class="container mt-3" sec:authorize="hasRole('ADMIN')">
+    <a th:href="@{/download-suspicious-report}" class="btn btn-warning text-dark">
+        Download Suspicious Report (Excel)
     </a>
 </div>
 </div>

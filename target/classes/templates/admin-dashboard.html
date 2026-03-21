@@ -87,19 +87,86 @@
         </div>
 
         <div class="card p-4 shadow mb-4 bg-dark text-white">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-6">
-                    <label class="form-label">Quick Search (Current Page)</label>
-                    <input type="text" id="quickSearch" class="form-control" placeholder="Search account..."
-                           onkeyup="quickFilterRows()">
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <span class="badge bg-secondary p-2">
-                        Showing page <span th:text="${currentPage + 1}">1</span>
-                        of <span th:text="${totalPages == 0 ? 1 : totalPages}">1</span>
-                        | Total Records: <span th:text="${totalElements}">0</span>
-                    </span>
-                </div>
+            <h5>Filtered Transactions</h5>
+            <div class="text-end mb-2">
+                <span class="badge bg-secondary p-2">
+                    Showing page <span th:text="${currentPage + 1}">1</span>
+                    of <span th:text="${totalPages == 0 ? 1 : totalPages}">1</span>
+                    | Total Records: <span th:text="${totalElements}">0</span>
+                </span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mt-3 table-dark" id="adminTxTable">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Account</th>
+                        <th>Amount</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Risk</th>
+                        <th>Reason</th>
+                        <th>Rules</th>
+                        <th>Time</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(transactions)}">
+                        <td colspan="9" class="text-center">No transactions found for selected filters.</td>
+                    </tr>
+                    <tr th:each="txn : ${transactions}"
+                        th:classappend="${txn.status == 'FRAUD' ? 'table-danger' :
+                                     (txn.status == 'SUSPICIOUS' ? 'table-warning' : 'table-success')}">
+                        <td th:text="${txn.id}"></td>
+                        <td th:text="${txn.accountNumber}"></td>
+                        <td th:text="${txn.amount}"></td>
+                        <td th:text="${txn.location}"></td>
+                        <td>
+                            <span th:text="${txn.status}"
+                                  th:classappend="${
+                                      txn.status == 'FRAUD' ? 'badge bg-danger' :
+                                      (txn.status == 'SUSPICIOUS' ? 'badge bg-warning text-dark' : 'badge bg-success')
+                                  }"></span>
+                        </td>
+                        <td th:text="${txn.riskScore}"></td>
+                        <td th:utext="${#strings.replace(txn.fraudReason, '\n', '<br/>')}"></td>
+                        <td>
+                            <span class="badge bg-info text-dark"
+                                  th:text="${ruleCountMap[txn.id] != null ? ruleCountMap[txn.id] + ' rules' : '0 rules'}">
+                            </span>
+                        </td>
+                        <td th:text="${txn.transactionTime != null ? #temporals.format(txn.transactionTime, 'dd-MM-yyyy HH:mm') : 'NA'}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+                <a class="btn btn-outline-light"
+                   th:classappend="${!hasPrevious} ? ' disabled'"
+                   th:href="@{/admin/dashboard(
+                        page=${currentPage - 1},
+                        size=${pageSize},
+                        status=${filter.status},
+                        fromDate=${filter.fromDate},
+                        toDate=${filter.toDate},
+                        accountNumber=${filter.accountNumber}
+                   )}">
+                    Previous
+                </a>
+
+                <a class="btn btn-outline-light"
+                   th:classappend="${!hasNext} ? ' disabled'"
+                   th:href="@{/admin/dashboard(
+                        page=${currentPage + 1},
+                        size=${pageSize},
+                        status=${filter.status},
+                        fromDate=${filter.fromDate},
+                        toDate=${filter.toDate},
+                        accountNumber=${filter.accountNumber}
+                   )}">
+                    Next
+                </a>
             </div>
         </div>
 
@@ -187,82 +254,6 @@
             </div>
         </div>
 
-        <div class="card p-4 shadow mb-4 bg-dark text-white">
-            <h5>Filtered Transactions</h5>
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover mt-3 table-dark" id="adminTxTable">
-                    <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Account</th>
-                        <th>Amount</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th>Risk</th>
-                        <th>Reason</th>
-                        <th>Rules</th>
-                        <th>Time</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:if="${#lists.isEmpty(transactions)}">
-                        <td colspan="9" class="text-center">No transactions found for selected filters.</td>
-                    </tr>
-                    <tr th:each="txn : ${transactions}"
-                        th:classappend="${txn.status == 'FRAUD' ? 'table-danger' :
-                                     (txn.status == 'SUSPICIOUS' ? 'table-warning' : 'table-success')}">
-                        <td th:text="${txn.id}"></td>
-                        <td th:text="${txn.accountNumber}"></td>
-                        <td th:text="${txn.amount}"></td>
-                        <td th:text="${txn.location}"></td>
-                        <td>
-                            <span th:text="${txn.status}"
-                                  th:classappend="${
-                                      txn.status == 'FRAUD' ? 'badge bg-danger' :
-                                      (txn.status == 'SUSPICIOUS' ? 'badge bg-warning text-dark' : 'badge bg-success')
-                                  }"></span>
-                        </td>
-                        <td th:text="${txn.riskScore}"></td>
-                        <td th:utext="${#strings.replace(txn.fraudReason, '\n', '<br/>')}"></td>
-                        <td>
-                            <span class="badge bg-info text-dark"
-                                  th:text="${ruleCountMap[txn.id] != null ? ruleCountMap[txn.id] + ' rules' : '0 rules'}">
-                            </span>
-                        </td>
-                        <td th:text="${txn.transactionTime}"></td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="d-flex justify-content-between mt-3">
-                <a class="btn btn-outline-light"
-                   th:classappend="${!hasPrevious} ? ' disabled'"
-                   th:href="@{/admin/dashboard(
-                        page=${currentPage - 1},
-                        size=${pageSize},
-                        status=${filter.status},
-                        fromDate=${filter.fromDate},
-                        toDate=${filter.toDate},
-                        accountNumber=${filter.accountNumber}
-                   )}">
-                    Previous
-                </a>
-
-                <a class="btn btn-outline-light"
-                   th:classappend="${!hasNext} ? ' disabled'"
-                   th:href="@{/admin/dashboard(
-                        page=${currentPage + 1},
-                        size=${pageSize},
-                        status=${filter.status},
-                        fromDate=${filter.fromDate},
-                        toDate=${filter.toDate},
-                        accountNumber=${filter.accountNumber}
-                   )}">
-                    Next
-                </a>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -271,17 +262,6 @@
     let lineChart;
     let alertsPoller;
     const todayStr = /*[[${today}]]*/ '';
-
-    function quickFilterRows() {
-        const input = document.getElementById("quickSearch").value.toLowerCase();
-        const rows = document.querySelectorAll("#adminTxTable tbody tr");
-
-        rows.forEach(row => {
-            if (row.cells.length < 2) return;
-            const account = row.cells[1].innerText.toLowerCase();
-            row.style.display = account.includes(input) ? "" : "none";
-        });
-    }
 
     function formatDate(dateObj) {
         const y = dateObj.getFullYear();
@@ -310,10 +290,10 @@
     }
 
     function loadAnalytics() {
-        const status = /*[[${filter.status}]]*/ '';
-        const fromDate = /*[[${filter.fromDate}]]*/ '';
-        const toDate = /*[[${filter.toDate}]]*/ '';
-        const accountNumber = /*[[${filter.accountNumber}]]*/ '';
+        const status = document.querySelector('select[name="status"]')?.value || '';
+        const fromDate = document.querySelector('input[name="fromDate"]')?.value || '';
+        const toDate = document.querySelector('input[name="toDate"]')?.value || '';
+        const accountNumber = document.querySelector('input[name="accountNumber"]')?.value || '';
         const mode = document.getElementById("analyticsMode").value;
         const granularity = document.getElementById("granularitySelect").value;
         const metric = document.getElementById("metricSelect").value;

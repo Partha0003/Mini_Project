@@ -23,6 +23,16 @@ public class ExcelReportService {
         generateTransactionReport(response, fraudList, "Fraud Transactions");
     }
 
+    public void generateSuspiciousReport(HttpServletResponse response) throws IOException {
+        List<Transaction> suspiciousList = transactionService.getSuspiciousTransactions();
+        generateTransactionReport(response, suspiciousList, "Suspicious Transactions");
+    }
+
+    public void generateNormalReport(HttpServletResponse response) throws IOException {
+        List<Transaction> normalList = transactionService.getNormalTransactions();
+        generateTransactionReport(response, normalList, "Normal Transactions");
+    }
+
     public void generateTransactionReport(
             HttpServletResponse response,
             List<Transaction> transactions,

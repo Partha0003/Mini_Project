@@ -149,7 +149,7 @@
                               th:text="${ruleCountMap[txn.id] != null ? ruleCountMap[txn.id] + ' rules' : '0 rules'}">
                         </span>
                     </td>
-                    <td th:text="${txn.transactionTime}"></td>
+                    <td th:text="${txn.transactionTime != null ? #temporals.format(txn.transactionTime, 'dd-MM-yyyy HH:mm') : 'NA'}"></td>
 
                     <td sec:authorize="hasRole('ADMIN')">
                         <a th:href="@{/transaction/delete/{id}(id=${txn.id})}"
