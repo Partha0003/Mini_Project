@@ -1,6 +1,7 @@
 body {
     background: linear-gradient(to right, #141e30, #243b55);
     color: #f8f9fa;
+    min-height: 100vh;
 }
 
 .page-card {
@@ -8,6 +9,7 @@ body {
     border: 1px solid #343a40;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    width: 100%;
 }
 
 .page-header {

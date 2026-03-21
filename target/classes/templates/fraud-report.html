@@ -14,7 +14,10 @@
     </style>
 </head>
 
-<body class="container mt-4">
+<body>
+<div class="d-flex">
+<div th:replace="~{fragments/sidebar :: sidebar}"></div>
+<div class="flex-fill p-4">
 <div class="page-card p-4">
 <div class="page-header">
     <h2 class="mb-0 text-danger">🚨 Fraud Transactions Report</h2>
@@ -107,6 +110,8 @@
        th:href="@{/fraud-report(page=${currentPage + 1},size=${pageSize},sortBy=${sortBy},dir=${dir})}">
         Next
     </a>
+</div>
+</div>
 </div>
 </div>
 </body>
