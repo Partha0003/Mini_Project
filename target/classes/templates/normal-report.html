@@ -3,36 +3,56 @@
 <head>
     <title>Normal Transactions</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body class="container mt-4">
 
-<h2 class="text-success">✔ Normal Transactions</h2>
+<div class="page-card p-4">
+<div class="page-header">
+    <h2 class="text-success mb-0">✔ Normal Transactions</h2>
+    <a th:href="@{/dashboard}" class="btn btn-secondary">⬅ Back to Dashboard</a>
+</div>
 
-<a th:href="@{/dashboard}" class="btn btn-secondary mb-3">Back</a>
-
-<table class="table table-bordered">
+<table class="table table-bordered table-dark">
     <thead class="table-success">
     <tr>
         <th>ID</th>
         <th>Account</th>
         <th>Amount</th>
         <th>Location</th>
+        <th>Status</th>
         <th>Risk</th>
+        <th>Reason</th>
+        <th>Rules</th>
         <th>Time</th>
     </tr>
     </thead>
 
     <tbody>
+    <tr th:if="${#lists.isEmpty(transactions)}">
+        <td colspan="9" class="text-center">No normal transactions found.</td>
+    </tr>
     <tr th:each="txn : ${transactions}">
         <td th:text="${txn.id}"></td>
         <td th:text="${txn.accountNumber}"></td>
-        <td th:text="${txn.amount}"></td>
+        <td>₹ <span th:text="${txn.amount}"></span></td>
         <td th:text="${txn.location}"></td>
+        <td>
+            <span class="badge bg-success"
+                  th:text="${txn.status}"></span>
+        </td>
         <td th:text="${txn.riskScore}"></td>
-        <td th:text="${txn.transactionTime}"></td>
+        <td th:utext="${#strings.replace(txn.fraudReason, '\n', '<br/>')}"></td>
+        <td>
+            <span class="badge bg-info text-dark"
+                  th:text="${ruleCountMap[txn.id] != null ? ruleCountMap[txn.id] + ' rules' : '0 rules'}">
+            </span>
+        </td>
+        <td th:text="${txn.transactionTime != null ? #temporals.format(txn.transactionTime, 'dd-MM-yyyy HH:mm') : 'NA'}"></td>
     </tr>
     </tbody>
 </table>
+</div>
 
 </body>
 </html>

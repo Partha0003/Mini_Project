@@ -4,6 +4,11 @@
 
 <div th:fragment="sidebar">
     <div class="bg-dark text-white p-3" style="width:250px; min-height:100vh;">
+        <div class="mb-3 pb-2 border-bottom border-secondary">
+            <small class="text-muted">Logged in as:</small><br/>
+            <span class="fw-semibold" sec:authentication="name">user</span>
+            <span class="badge bg-secondary ms-1" sec:authentication="principal.authorities">ROLE_USER</span>
+        </div>
         <ul class="nav flex-column">
 
             <li class="nav-item">

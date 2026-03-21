@@ -37,6 +37,9 @@ public class TransactionService {
     @Autowired
     private FraudLogRepository fraudLogRepository;
 
+    @Autowired
+    private FraudAlertService fraudAlertService;
+
     public List<Transaction> getAll() {
         return transactionRepository.findAll();
     }
@@ -55,6 +58,13 @@ public class TransactionService {
 
         Transaction saved = transactionRepository.save(transaction);
         persistFraudRuleLogs(saved.getId(), checkResult.getRuleResults());
+        if (FraudStatus.FRAUD.name().equals(saved.getStatus())) {
+            fraudAlertService.addAlert(
+                    saved.getAccountNumber(),
+                    saved.getAmount(),
+                    saved.getFraudReason()
+            );
+        }
         return saved;
     }
 

@@ -24,6 +24,16 @@
             </a>
         </div>
 
+        <div class="card p-3 shadow mb-4 bg-dark text-white border-danger">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0 text-danger">Live Fraud Alerts</h5>
+                <small class="text-muted">Auto-refresh: 7s</small>
+            </div>
+            <div id="alertContainer">
+                <div class="alert alert-secondary mb-0">No fraud alerts yet.</div>
+            </div>
+        </div>
+
         <div class="card p-4 shadow mb-4 bg-dark text-white">
             <h5 class="mb-3">Filters</h5>
             <form class="row g-3" method="get" th:action="@{/admin/dashboard}">
@@ -159,6 +169,24 @@
             </div>
         </div>
 
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card p-3 bg-dark text-white">
+                    <h6>Fraud Distribution</h6>
+                    <canvas id="statusPieChart"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card p-3 bg-dark text-white">
+                    <h6>Transactions Over Time</h6>
+                    <div id="trendHint" class="small text-warning mb-2 d-none">
+                        Not enough data points for a useful trend. Try wider date range or switch to overall mode.
+                    </div>
+                    <canvas id="txLineChart"></canvas>
+                </div>
+            </div>
+        </div>
+
         <div class="card p-4 shadow mb-4 bg-dark text-white">
             <h5>Filtered Transactions</h5>
             <div class="table-responsive">
@@ -187,7 +215,13 @@
                         <td th:text="${txn.accountNumber}"></td>
                         <td th:text="${txn.amount}"></td>
                         <td th:text="${txn.location}"></td>
-                        <td th:text="${txn.status}"></td>
+                        <td>
+                            <span th:text="${txn.status}"
+                                  th:classappend="${
+                                      txn.status == 'FRAUD' ? 'badge bg-danger' :
+                                      (txn.status == 'SUSPICIOUS' ? 'badge bg-warning text-dark' : 'badge bg-success')
+                                  }"></span>
+                        </td>
                         <td th:text="${txn.riskScore}"></td>
                         <td th:utext="${#strings.replace(txn.fraudReason, '\n', '<br/>')}"></td>
                         <td>
@@ -229,30 +263,13 @@
                 </a>
             </div>
         </div>
-
-        <div class="row">
-            <div class="col-lg-6 mb-4">
-                <div class="card p-3 bg-dark text-white">
-                    <h6>Fraud Distribution</h6>
-                    <canvas id="statusPieChart"></canvas>
-                </div>
-            </div>
-            <div class="col-lg-6 mb-4">
-                <div class="card p-3 bg-dark text-white">
-                    <h6>Transactions Over Time</h6>
-                    <div id="trendHint" class="small text-warning mb-2 d-none">
-                        Not enough data points for a useful trend. Try wider date range or switch to overall mode.
-                    </div>
-                    <canvas id="txLineChart"></canvas>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
 <script th:inline="javascript">
     let pieChart;
     let lineChart;
+    let alertsPoller;
     const todayStr = /*[[${today}]]*/ '';
 
     function quickFilterRows() {
@@ -335,6 +352,43 @@
             });
     }
 
+    function renderAlerts(alerts) {
+        const container = document.getElementById("alertContainer");
+        if (!alerts || alerts.length === 0) {
+            container.innerHTML = '<div class="alert alert-secondary mb-0">No fraud alerts yet.</div>';
+            return;
+        }
+
+        const html = alerts.map(alert => {
+            const timestamp = alert.timestamp ? new Date(alert.timestamp).toLocaleString() : "NA";
+            const reason = (alert.reason || "").replaceAll("\n", "<br/>");
+            return `
+                <div class="alert alert-danger mb-2 py-2">
+                    <div><strong>Account:</strong> ${alert.accountNumber || "NA"}</div>
+                    <div><strong>Amount:</strong> ₹ ${alert.amount ?? 0}</div>
+                    <div><strong>Reason:</strong><br/> ${reason}</div>
+                    <div class="small text-muted mt-1">${timestamp}</div>
+                </div>
+            `;
+        }).join("");
+
+        container.innerHTML = html;
+    }
+
+    function loadAlerts() {
+        fetch("/api/admin/alerts")
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed alerts");
+                }
+                return response.json();
+            })
+            .then(data => renderAlerts(data))
+            .catch(() => {
+                renderAlerts([]);
+            });
+    }
+
     function renderCharts(payload) {
         const statusCounts = payload.statusCounts || {};
         const transactionsByDate = payload.transactionsByDate || {};
@@ -410,6 +464,12 @@
             }
         });
     }
+
+    loadAlerts();
+    if (alertsPoller) {
+        clearInterval(alertsPoller);
+    }
+    alertsPoller = setInterval(loadAlerts, 7000);
 
     loadAnalytics();
 </script>

@@ -15,16 +15,15 @@
 </head>
 
 <body class="container mt-4">
-
-<h2 class="mb-3 text-danger">🚨 Fraud Transactions Report</h2>
-
-<div class="mb-3">
-    <a href="/" class="btn btn-secondary">
+<div class="page-card p-4">
+<div class="page-header">
+    <h2 class="mb-0 text-danger">🚨 Fraud Transactions Report</h2>
+    <a href="/dashboard" class="btn btn-secondary">
         ⬅ Back to Dashboard
     </a>
 </div>
 
-<table class="table table-bordered table-hover">
+<table class="table table-bordered table-hover table-dark">
 
     <thead class="table-dark">
     <tr>
@@ -34,11 +33,16 @@
         <th>Location</th>
         <th>Status</th>
         <th>Risk Score</th>
+        <th>Reason</th>
+        <th>Rules</th>
         <th>Time</th>
     </tr>
     </thead>
 
     <tbody>
+    <tr th:if="${#lists.isEmpty(transactions)}">
+        <td colspan="9" class="text-center">No fraud transactions found.</td>
+    </tr>
     <tr th:each="tx : ${transactions}" class="fraud-row">
         <td th:text="${tx.id}"></td>
         <td th:text="${tx.accountNumber}"></td>
@@ -52,21 +56,22 @@
         </td>
 
         <td th:text="${tx.riskScore}"></td>
+        <td th:utext="${#strings.replace(tx.fraudReason, '\n', '<br/>')}"></td>
+        <td>
+            <span class="badge bg-info text-dark"
+                  th:text="${ruleCountMap[tx.id] != null ? ruleCountMap[tx.id] + ' rules' : '0 rules'}">
+            </span>
+        </td>
 
-        <td th:text="${#temporals.format(tx.transactionTime, 'dd-MM-yyyy HH:mm')}"></td>
+        <td th:text="${tx.transactionTime != null ? #temporals.format(tx.transactionTime, 'dd-MM-yyyy HH:mm') : 'NA'}"></td>
     </tr>
     </tbody>
 </table>
-
-<div th:if="${#lists.isEmpty(transactions)}"
-     class="alert alert-info mt-3">
-    No fraud transactions found.
-</div>
 <div class="container mt-3" sec:authorize="hasRole('ADMIN')">
     <a th:href="@{/download-fraud-report}" class="btn btn-danger">
         Download Fraud Report (Excel)
     </a>
 </div>
-
+</div>
 </body>
 </html>

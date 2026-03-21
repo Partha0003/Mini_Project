@@ -1,4 +1,5 @@
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\config\SecurityConfig.java
+D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\controller\AdminAnalyticsController.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\controller\AdminDashboardController.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\controller\AnalyticsController.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\controller\DashboardController.java
@@ -7,6 +8,7 @@ D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--fina
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\controller\ReportController.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\controller\TransactionApiGatewayController.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\controller\TransactionController.java
+D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\dto\FraudAlert.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\dto\FraudCheckResult.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\dto\FraudRuleResult.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\dto\TransactionFilterDTO.java
@@ -20,9 +22,11 @@ D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--fina
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\model\Transaction.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\repository\FraudLogRepository.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\repository\TransactionRepository.java
+D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\service\AdminAnalyticsService.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\service\AdminDashboardService.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\service\AnalyticsService.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\service\ExcelReportService.java
+D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\service\FraudAlertService.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\service\FraudDetectionService.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\service\TransactionService.java
 D:\DL_MINI\Digital-Banking-Fraud-Detection-Simulation-Engine-with-frontend--final\src\main\java\com\bank\frauddetection\service\TransactionSimulationService.java

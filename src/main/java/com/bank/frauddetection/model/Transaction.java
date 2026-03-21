@@ -13,13 +13,7 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Account number is required")
-    @Size(min = 8, max = 8)
-    @Pattern(
-            regexp = "^[A-Z]{4}[0-9A-F]{4}$",
-            message = "Account number must be 4 letters followed by 4 hexadecimal characters"
-    )
-    @Column(nullable = false, length = 8)
+    @Column(nullable = false, length = 64)
     private String accountNumber;
 
     @NotNull
@@ -55,8 +49,7 @@ public class Transaction {
     public String getAccountNumber() { return accountNumber; }
 
     public void setAccountNumber(String accountNumber) {
-        if (accountNumber != null)
-            this.accountNumber = accountNumber.toUpperCase();
+        this.accountNumber = accountNumber;
     }
 
     public Double getAmount() { return amount; }

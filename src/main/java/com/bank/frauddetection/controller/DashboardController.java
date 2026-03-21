@@ -73,22 +73,25 @@ public class DashboardController {
 
     @GetMapping("/fraud-report")
     public String fraudReport(Model model) {
-        model.addAttribute("transactions",
-                transactionService.getFraudTransactions());
+        List<Transaction> transactions = transactionService.getFraudTransactions();
+        model.addAttribute("transactions", transactions);
+        model.addAttribute("ruleCountMap", transactionService.getRuleCountMap(transactions));
         return "fraud-report";
     }
 
     @GetMapping("/suspicious-report")
     public String suspiciousReport(Model model) {
-        model.addAttribute("transactions",
-                transactionService.getSuspiciousTransactions());
+        List<Transaction> transactions = transactionService.getSuspiciousTransactions();
+        model.addAttribute("transactions", transactions);
+        model.addAttribute("ruleCountMap", transactionService.getRuleCountMap(transactions));
         return "suspicious-report";
     }
 
     @GetMapping("/normal-report")
     public String normalReport(Model model) {
-        model.addAttribute("transactions",
-                transactionService.getNormalTransactions());
+        List<Transaction> transactions = transactionService.getNormalTransactions();
+        model.addAttribute("transactions", transactions);
+        model.addAttribute("ruleCountMap", transactionService.getRuleCountMap(transactions));
         return "normal-report";
     }
 

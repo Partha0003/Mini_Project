@@ -12,11 +12,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.time.LocalDate;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @Controller
 public class AdminDashboardController {
@@ -52,20 +49,6 @@ public class AdminDashboardController {
         model.addAttribute("ruleCountMap", transactionService.getRuleCountMap(transactionsPage.getContent()));
 
         return "admin-dashboard";
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/api/admin/analytics")
-    @ResponseBody
-    public Map<String, Object> getAdminAnalytics(
-            @ModelAttribute TransactionFilterDTO filter,
-            @RequestParam(defaultValue = "filtered") String mode,
-            @RequestParam(defaultValue = "auto") String granularity,
-            @RequestParam(defaultValue = "count") String metric) {
-
-        return new LinkedHashMap<>(
-                adminDashboardService.buildAnalytics(filter, mode, granularity, metric)
-        );
     }
 
     private void applyDefaultDateRangeIfMissing(TransactionFilterDTO filter) {

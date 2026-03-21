@@ -1,0 +1,39 @@
+body {
+    background: linear-gradient(to right, #141e30, #243b55);
+    color: #f8f9fa;
+}
+
+.page-card {
+    background-color: #212529;
+    border: 1px solid #343a40;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.table thead th {
+    white-space: nowrap;
+}
+
+.table tbody td {
+    vertical-align: middle;
+}
+
+.badge-fraud {
+    background-color: #dc3545;
+}
+
+.badge-suspicious {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-normal {
+    background-color: #198754;
+}
