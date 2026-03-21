@@ -46,7 +46,7 @@
 
         <div class="card p-4 shadow mb-4 bg-dark text-white">
             <h5 class="mb-3">Filters</h5>
-            <form class="row g-3" method="get" th:action="@{/admin/dashboard}">
+            <form class="row g-3" method="get" th:action="@{/admin/dashboard}" id="adminFilterForm">
                 <div class="col-md-2">
                     <label class="form-label">Status</label>
                     <select class="form-select" id="filterStatus" name="status">
@@ -85,7 +85,7 @@
 
                 <div class="col-md-2 d-flex align-items-end gap-2">
                     <button class="btn btn-primary w-100" type="submit">Apply Filter</button>
-                    <a class="btn btn-outline-light" th:href="@{/admin/dashboard}">Reset</a>
+                    <a class="btn btn-outline-light" id="resetFiltersBtn" th:href="@{/admin/dashboard}">Reset</a>
                 </div>
             </form>
             <div class="mt-3 d-flex flex-wrap gap-2">
@@ -96,7 +96,7 @@
             </div>
         </div>
 
-        <div class="card p-4 shadow mb-4 bg-dark text-white">
+        <div class="card p-4 shadow mb-4 bg-dark text-white" id="filteredTransactionsSection">
             <h5>Filtered Transactions</h5>
             <div class="text-end mb-2">
                 <span class="badge bg-secondary p-2">
@@ -154,7 +154,7 @@
             </div>
 
             <div class="d-flex justify-content-between mt-3">
-                <a class="btn btn-outline-light"
+                <a class="btn btn-outline-light table-nav-link"
                    th:classappend="${!hasPrevious} ? ' disabled'"
                    th:href="@{/admin/dashboard(
                         page=${currentPage - 1},
@@ -167,7 +167,7 @@
                     Previous
                 </a>
 
-                <a class="btn btn-outline-light"
+                <a class="btn btn-outline-light table-nav-link"
                    th:classappend="${!hasNext} ? ' disabled'"
                    th:href="@{/admin/dashboard(
                         page=${currentPage + 1},
@@ -799,6 +799,8 @@
         if (toDate) params.append("toDate", toDate);
         if (accountNumber) params.append("accountNumber", accountNumber);
         params.append("size", document.querySelector("select[name='size']")?.value || "10");
+        params.append("scrollY", String(window.scrollY || 0));
+        rememberScrollPosition();
         window.location.href = `/admin/dashboard?${params.toString()}`;
     }
 
@@ -826,6 +828,59 @@
                 }
             });
         });
+
+    (function preserveFilteredTableFocus() {
+        restoreScrollPosition();
+        const form = document.getElementById("adminFilterForm");
+        if (form) {
+            form.addEventListener("submit", () => {
+                rememberScrollPosition();
+            });
+        }
+
+        document.querySelectorAll(".table-nav-link").forEach(link => {
+            link.addEventListener("click", () => rememberScrollPosition());
+        });
+
+        const resetBtn = document.getElementById("resetFiltersBtn");
+        if (resetBtn) {
+            resetBtn.addEventListener("click", () => rememberScrollPosition());
+        }
+    })();
+
+    function rememberScrollPosition() {
+        try {
+            sessionStorage.setItem("adminDashboardRestoreScrollY", String(window.scrollY || 0));
+            sessionStorage.setItem("adminDashboardShouldRestoreScroll", "true");
+        } catch (e) {
+            // ignore storage failures
+        }
+    }
+
+    function restoreScrollPosition() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const fromQuery = Number(urlParams.get("scrollY"));
+            if (Number.isFinite(fromQuery) && fromQuery >= 0) {
+                // Multi-pass restore prevents layout-shift jumps (notably seen on FRAUD pie click path).
+                setTimeout(() => window.scrollTo(0, fromQuery), 30);
+                setTimeout(() => window.scrollTo(0, fromQuery), 220);
+                setTimeout(() => window.scrollTo(0, fromQuery), 520);
+                return;
+            }
+
+            const shouldRestore = sessionStorage.getItem("adminDashboardShouldRestoreScroll") === "true";
+            if (!shouldRestore) return;
+            const y = Number(sessionStorage.getItem("adminDashboardRestoreScrollY") || "0");
+            sessionStorage.removeItem("adminDashboardShouldRestoreScroll");
+            const target = Number.isFinite(y) ? y : 0;
+            setTimeout(() => window.scrollTo(0, target), 30);
+            setTimeout(() => window.scrollTo(0, target), 220);
+            setTimeout(() => window.scrollTo(0, target), 520);
+        } catch (e) {
+            // ignore storage failures
+        }
+    }
 
     refreshExportLink();
     loadAnalytics();

@@ -4,6 +4,7 @@ import com.bank.frauddetection.model.Transaction;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -18,37 +19,57 @@ public class TransactionSimulationService {
     private static final String LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     public List<Transaction> generateTransactions(int count) {
-
-        List<Transaction> transactions = new ArrayList<>();
         Random random = new Random();
+        List<Transaction> transactions = new ArrayList<>();
+
+        // Requested demo behavior: for "simulate 10", force exact mix.
+        if (count == 10) {
+            for (int i = 0; i < 4; i++) {
+                transactions.add(buildNormalTransaction(random));
+            }
+            for (int i = 0; i < 3; i++) {
+                transactions.add(buildSuspiciousTransaction(random));
+            }
+            for (int i = 0; i < 3; i++) {
+                transactions.add(buildFraudTransaction(random));
+            }
+            Collections.shuffle(transactions, random);
+            return transactions;
+        }
 
         for (int i = 0; i < count; i++) {
-
-            Transaction tx = new Transaction();
-
-            // ✅ Generate valid account number (ABCD1A2F format)
-            tx.setAccountNumber(generateValidAccount(random));
-
-            tx.setLocation(LOCATIONS[random.nextInt(LOCATIONS.length)]);
-
-            double amount;
-            int risk;
-
             if (random.nextBoolean()) {
-                amount = 80000 + random.nextInt(50000);
-                risk = 80 + random.nextInt(20); // FRAUD
+                transactions.add(buildFraudTransaction(random));
             } else {
-                amount = 500 + random.nextInt(5000);
-                risk = random.nextInt(40); // NORMAL
+                transactions.add(buildNormalTransaction(random));
             }
-
-            tx.setAmount(amount);
-            tx.setRiskScore(risk);
-
-            transactions.add(tx);
         }
 
         return transactions;
+    }
+
+    private Transaction buildNormalTransaction(Random random) {
+        Transaction tx = new Transaction();
+        tx.setAccountNumber(generateValidAccount(random));
+        tx.setLocation(LOCATIONS[random.nextInt(LOCATIONS.length)]);
+        tx.setAmount(500.0 + random.nextInt(49000)); // below HIGH_AMOUNT
+        return tx;
+    }
+
+    private Transaction buildSuspiciousTransaction(Random random) {
+        Transaction tx = new Transaction();
+        tx.setAccountNumber(generateValidAccount(random));
+        tx.setLocation(LOCATIONS[random.nextInt(LOCATIONS.length)]);
+        tx.setAmount(51000.0 + random.nextInt(9000)); // 51k-59,999 => +50
+        return tx;
+    }
+
+    private Transaction buildFraudTransaction(Random random) {
+        Transaction tx = new Transaction();
+        tx.setAccountNumber(generateValidAccount(random));
+        tx.setLocation(LOCATIONS[random.nextInt(LOCATIONS.length)]);
+        tx.setAmount(61000.0 + random.nextInt(39000)); // >60k => HIGH_AMOUNT + ML risk
+        return tx;
     }
 
     private String generateValidAccount(Random random) {
