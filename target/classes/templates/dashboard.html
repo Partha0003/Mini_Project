@@ -84,21 +84,49 @@
 
         <!-- TABLE -->
         <div class="card p-4 shadow bg-dark text-white">
-            <h4>All Transactions</h4>
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">All Transactions</h4>
+                <span class="badge bg-secondary">
+                    Page <span th:text="${currentPage + 1}">1</span> /
+                    <span th:text="${totalPages == 0 ? 1 : totalPages}">1</span>
+                    | Total: <span th:text="${totalTransactions}">0</span>
+                </span>
+            </div>
 
-            <table class="table table-bordered table-hover mt-3 table-dark">
+            <div class="table-responsive mt-3" style="max-height: 520px;">
+            <table class="table table-bordered table-hover table-dark mb-0">
 
-                <thead>
+                <thead class="sticky-top">
                 <tr>
                     <th>ID</th>
-                    <th>Account</th>
-                    <th>Amount</th>
+                    <th>
+                        <a class="text-white text-decoration-none"
+                           th:href="@{/dashboard(page=${currentPage},size=${pageSize},sortBy='accountNumber',dir=${sortBy == 'accountNumber' and dir == 'asc' ? 'desc' : 'asc'})}">
+                            Account
+                        </a>
+                    </th>
+                    <th>
+                        <a class="text-white text-decoration-none"
+                           th:href="@{/dashboard(page=${currentPage},size=${pageSize},sortBy='amount',dir=${sortBy == 'amount' and dir == 'asc' ? 'desc' : 'asc'})}">
+                            Amount
+                        </a>
+                    </th>
                     <th>Location</th>
                     <th>Status</th>
-                    <th>Risk</th>
+                    <th>
+                        <a class="text-white text-decoration-none"
+                           th:href="@{/dashboard(page=${currentPage},size=${pageSize},sortBy='riskScore',dir=${sortBy == 'riskScore' and dir == 'asc' ? 'desc' : 'asc'})}">
+                            Risk
+                        </a>
+                    </th>
                     <th>Reason</th>
                     <th>Rules</th>
-                    <th>Time</th>
+                    <th>
+                        <a class="text-white text-decoration-none"
+                           th:href="@{/dashboard(page=${currentPage},size=${pageSize},sortBy='transactionTime',dir=${sortBy == 'transactionTime' and dir == 'asc' ? 'desc' : 'asc'})}">
+                            Time
+                        </a>
+                    </th>
                     <th>Action</th>
                 </tr>
                 </thead>
@@ -135,6 +163,20 @@
 
                 </tbody>
             </table>
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+                <a class="btn btn-outline-light"
+                   th:classappend="${!hasPrevious} ? ' disabled'"
+                   th:href="@{/dashboard(page=${currentPage - 1},size=${pageSize},sortBy=${sortBy},dir=${dir})}">
+                    Previous
+                </a>
+                <a class="btn btn-outline-light"
+                   th:classappend="${!hasNext} ? ' disabled'"
+                   th:href="@{/dashboard(page=${currentPage + 1},size=${pageSize},sortBy=${sortBy},dir=${dir})}">
+                    Next
+                </a>
+            </div>
         </div>
 
     </div>

@@ -10,6 +10,7 @@ import com.bank.frauddetection.repository.FraudLogRepository;
 import com.bank.frauddetection.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -42,6 +43,14 @@ public class TransactionService {
 
     public List<Transaction> getAll() {
         return transactionRepository.findAll();
+    }
+
+    public Page<Transaction> getAllTransactionsPage(int page, int size, String sortBy, String dir) {
+        return transactionRepository.findAll(buildPageable(page, size, sortBy, dir));
+    }
+
+    public Page<Transaction> getTransactionsByStatusPage(String status, int page, int size, String sortBy, String dir) {
+        return transactionRepository.findByStatus(status, buildPageable(page, size, sortBy, dir));
     }
 
     public Transaction createTransaction(Transaction transaction) {
@@ -151,6 +160,22 @@ public class TransactionService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private Pageable buildPageable(int page, int size, String sortBy, String dir) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+
+        String safeSortBy = switch (sortBy) {
+            case "amount", "riskScore", "transactionTime", "accountNumber", "status" -> sortBy;
+            default -> "transactionTime";
+        };
+
+        Sort.Direction direction = "asc".equalsIgnoreCase(dir)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
+        return PageRequest.of(safePage, safeSize, Sort.by(direction, safeSortBy));
     }
 
     private void persistFraudRuleLogs(Long transactionId, List<FraudRuleResult> rules) {

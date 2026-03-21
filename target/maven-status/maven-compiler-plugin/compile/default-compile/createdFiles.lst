@@ -27,6 +27,7 @@ com\bank\frauddetection\service\FraudAlertService.class
 com\bank\frauddetection\ml\ModelEvaluationResult.class
 com\bank\frauddetection\ml\DummyFraudMLPlugin.class
 com\bank\frauddetection\service\AnalyticsService.class
+com\bank\frauddetection\controller\ErrorPageController.class
 com\bank\frauddetection\dto\FraudRuleResult.class
 com\bank\frauddetection\repository\FraudLogRepository$RuleCountProjection.class
 com\bank\frauddetection\service\TransactionService.class
