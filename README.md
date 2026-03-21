@@ -14,6 +14,8 @@ Simple fraud monitoring app with login, dashboards, reports, alerts, and rule-ba
 3. Run project:
    ```powershell
    mvn clean spring-boot:run
+
+   mvn spring-boot:run
    ```
 4. Open:
    - [http://localhost:8082/login](http://localhost:8082/login)
@@ -136,4 +138,8 @@ System also stores rule-level fraud logs and rule count for each transaction.
 
 - Live fraud alerts are in-memory (keeps latest 10 alerts, demo-friendly).
 - For production, move credentials and secrets to environment variables.
+- Optional DB performance indexes are provided in `db-indexing-suggestions.sql` for:
+  - `status`
+  - `transaction_time`
+  - `account_number`
 

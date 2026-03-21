@@ -5,6 +5,7 @@
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
 <div class="d-flex">
@@ -27,7 +28,16 @@
         <div class="card p-3 shadow mb-4 bg-dark text-white border-danger">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h5 class="mb-0 text-danger">Live Fraud Alerts</h5>
-                <small class="text-muted">Auto-refresh: 7s</small>
+                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                    <small class="text-muted">Auto-refresh: 7s</small>
+                    <small class="text-info">Last Refreshed: <span id="alertsLastRefreshed">Never</span></small>
+                    <button type="button" id="alertsMuteBtn" class="btn btn-danger text-white px-3 py-2" onclick="toggleAlertsMute()">
+                        Mute Alerts
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-light" onclick="refreshAlertsNow()">
+                        Refresh Now
+                    </button>
+                </div>
             </div>
             <div id="alertContainer">
                 <div class="alert alert-secondary mb-0">No fraud alerts yet.</div>
@@ -39,7 +49,7 @@
             <form class="row g-3" method="get" th:action="@{/admin/dashboard}">
                 <div class="col-md-2">
                     <label class="form-label">Status</label>
-                    <select class="form-select" name="status">
+                    <select class="form-select" id="filterStatus" name="status">
                         <option value="" th:selected="${filter.status == null || filter.status == ''}">All</option>
                         <option value="FRAUD" th:selected="${filter.status == 'FRAUD'}">FRAUD</option>
                         <option value="SUSPICIOUS" th:selected="${filter.status == 'SUSPICIOUS'}">SUSPICIOUS</option>
@@ -49,17 +59,17 @@
 
                 <div class="col-md-2">
                     <label class="form-label">From Date</label>
-                    <input type="date" class="form-control" name="fromDate" th:value="${filter.fromDate}">
+                    <input type="date" class="form-control" id="filterFromDate" name="fromDate" th:value="${filter.fromDate}">
                 </div>
 
                 <div class="col-md-2">
                     <label class="form-label">To Date</label>
-                    <input type="date" class="form-control" name="toDate" th:value="${filter.toDate}">
+                    <input type="date" class="form-control" id="filterToDate" name="toDate" th:value="${filter.toDate}">
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label">Account Number</label>
-                    <input type="text" class="form-control" name="accountNumber"
+                    <input type="text" class="form-control" id="filterAccountNumber" name="accountNumber"
                            placeholder="ABCD1A2F" th:value="${filter.accountNumber}">
                 </div>
 
@@ -106,7 +116,7 @@
                         <th>Status</th>
                         <th>Risk</th>
                         <th>Reason</th>
-                        <th>Rules</th>
+                        <th>Log</th>
                         <th>Time</th>
                     </tr>
                     </thead>
@@ -114,10 +124,10 @@
                     <tr th:if="${#lists.isEmpty(transactions)}">
                         <td colspan="9" class="text-center">No transactions found for selected filters.</td>
                     </tr>
-                    <tr th:each="txn : ${transactions}"
+                    <tr th:each="txn,iter : ${transactions}"
                         th:classappend="${txn.status == 'FRAUD' ? 'table-danger' :
                                      (txn.status == 'SUSPICIOUS' ? 'table-warning' : 'table-success')}">
-                        <td th:text="${txn.id}"></td>
+                        <td th:text="${currentPage * pageSize + iter.count}"></td>
                         <td th:text="${txn.accountNumber}"></td>
                         <td th:text="${txn.amount}"></td>
                         <td th:text="${txn.location}"></td>
@@ -131,9 +141,11 @@
                         <td th:text="${txn.riskScore}"></td>
                         <td th:utext="${#strings.replace(txn.fraudReason, '\n', '<br/>')}"></td>
                         <td>
-                            <span class="badge bg-info text-dark"
-                                  th:text="${ruleCountMap[txn.id] != null ? ruleCountMap[txn.id] + ' rules' : '0 rules'}">
-                            </span>
+                            <button class="btn btn-sm btn-outline-info"
+                                    th:attr="data-txn-id=${txn.id}"
+                                    onclick="openLogsModal(this.getAttribute('data-txn-id'))">
+                                View Logs
+                            </button>
                         </td>
                         <td th:text="${txn.transactionTime != null ? #temporals.format(txn.transactionTime, 'dd-MM-yyyy HH:mm') : 'NA'}"></td>
                     </tr>
@@ -205,6 +217,12 @@
                     <span class="badge bg-secondary p-2 ms-1">
                         Bucket: <span id="bucketLabel">day</span>
                     </span>
+                    <span class="badge bg-dark border border-info p-2 ms-1">
+                        Last Refreshed: <span id="analyticsLastRefreshed">Never</span>
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-light ms-1" onclick="loadAnalytics()">
+                        Refresh Charts
+                    </button>
                 </div>
             </div>
         </div>
@@ -236,6 +254,51 @@
             </div>
         </div>
 
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card p-3 bg-dark text-white border-danger">
+                    <small>Highest Risk Transaction</small>
+                    <h6 id="insightHighestRisk" class="mb-0">NA</h6>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 bg-dark text-white border-warning">
+                    <small>Latest Fraud</small>
+                    <h6 id="insightLatestFraud" class="mb-0">NA</h6>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 bg-dark text-white border-info">
+                    <small>Fraud Rate Delta (Recent vs Previous)</small>
+                    <h6 id="insightFraudDelta" class="mb-0">0%</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-3 bg-dark text-white mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Top Risky Accounts</h6>
+                <small class="text-muted">Sorted by avg risk score</small>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-bordered mb-0">
+                    <thead>
+                    <tr>
+                        <th>Account</th>
+                        <th>Avg Risk</th>
+                        <th>Fraud Tx</th>
+                        <th>Total Tx</th>
+                    </tr>
+                    </thead>
+                    <tbody id="topRiskyAccountsBody">
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">No data</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col-lg-6 mb-4">
                 <div class="card p-3 bg-dark text-white">
@@ -257,11 +320,49 @@
     </div>
 </div>
 
+<div class="modal fade" id="logsModal" tabindex="-1" aria-labelledby="logsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-white border-info">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logsModalLabel">Transaction Rule Logs</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="logsModalMeta" class="small text-info mb-2"></div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-bordered align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Rule</th>
+                            <th>Risk Contribution</th>
+                            <th>Logged At</th>
+                        </tr>
+                        </thead>
+                        <tbody id="logsTableBody">
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No logs loaded.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script th:inline="javascript">
     let pieChart;
     let lineChart;
     let alertsPoller;
+    let logsModalInstance;
+    const alertsMutedStorageKey = "adminAlertsMuted";
+    const mutedAlertKeysStorageKey = "adminMutedAlertKeys";
+    let alertsMuted = false;
+    let mutedAlertKeys = {};
     const todayStr = /*[[${today}]]*/ '';
+    const defaultFromDate = /*[[${filter.fromDate}]]*/ '';
+    const defaultToDate = /*[[${filter.toDate}]]*/ '';
 
     function formatDate(dateObj) {
         const y = dateObj.getFullYear();
@@ -271,32 +372,43 @@
     }
 
     function applyPresetDays(days) {
-        const toInput = document.querySelector('input[name="toDate"]');
-        const fromInput = document.querySelector('input[name="fromDate"]');
+        const toInput = document.getElementById("filterToDate");
+        const fromInput = document.getElementById("filterFromDate");
         const now = new Date();
         const from = new Date();
         from.setDate(now.getDate() - (days - 1));
         toInput.value = formatDate(now);
         fromInput.value = formatDate(from);
+        if (document.getElementById("analyticsMode").value === "filtered") {
+            loadAnalytics();
+        }
     }
 
     function applyThisMonth() {
-        const toInput = document.querySelector('input[name="toDate"]');
-        const fromInput = document.querySelector('input[name="fromDate"]');
+        const toInput = document.getElementById("filterToDate");
+        const fromInput = document.getElementById("filterFromDate");
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), 1);
         fromInput.value = formatDate(start);
         toInput.value = formatDate(now);
+        if (document.getElementById("analyticsMode").value === "filtered") {
+            loadAnalytics();
+        }
     }
 
     function loadAnalytics() {
-        const status = document.querySelector('select[name="status"]')?.value || '';
-        const fromDate = document.querySelector('input[name="fromDate"]')?.value || '';
-        const toDate = document.querySelector('input[name="toDate"]')?.value || '';
-        const accountNumber = document.querySelector('input[name="accountNumber"]')?.value || '';
+        const status = document.getElementById("filterStatus")?.value || '';
+        let fromDate = document.getElementById("filterFromDate")?.value || '';
+        let toDate = document.getElementById("filterToDate")?.value || '';
+        const accountNumber = document.getElementById("filterAccountNumber")?.value || '';
         const mode = document.getElementById("analyticsMode").value;
         const granularity = document.getElementById("granularitySelect").value;
         const metric = document.getElementById("metricSelect").value;
+
+        if (!fromDate && !toDate) {
+            fromDate = defaultFromDate || '';
+            toDate = defaultToDate || '';
+        }
 
         const params = new URLSearchParams();
         params.append("mode", mode);
@@ -313,6 +425,7 @@
             .then(response => response.json())
             .then(data => {
                 renderCharts(data);
+                setLastRefreshed("analyticsLastRefreshed");
             })
             .catch(() => {
                 renderCharts({
@@ -329,24 +442,48 @@
                     granularity: "day",
                     hasEnoughTrendData: false
                 });
+                setLastRefreshed("analyticsLastRefreshed");
             });
     }
 
     function renderAlerts(alerts) {
         const container = document.getElementById("alertContainer");
+        if (alertsMuted) {
+            container.innerHTML = '<div class="alert alert-warning mb-0">Alerts are muted. Click "Unmute Alerts" to resume display.</div>';
+            return;
+        }
         if (!alerts || alerts.length === 0) {
             container.innerHTML = '<div class="alert alert-secondary mb-0">No fraud alerts yet.</div>';
             return;
         }
 
         const html = alerts.map(alert => {
+            const key = getAlertKey(alert);
+            const isMuted = !!mutedAlertKeys[key];
             const timestamp = alert.timestamp ? new Date(alert.timestamp).toLocaleString() : "NA";
             const reason = (alert.reason || "").replaceAll("\n", "<br/>");
+            const mutedDetailsHtml = `
+                <div><strong>Account:</strong> ${alert.accountNumber || "NA"}</div>
+                <div class="mt-1">Alerts are muted. Click "Unmute Alerts" to resume display.</div>
+            `;
+            const activeDetailsHtml = `
+                <div><strong>Account:</strong> ${alert.accountNumber || "NA"}</div>
+                <div><strong>Amount:</strong> ₹ ${alert.amount ?? 0}</div>
+            `;
             return `
-                <div class="alert alert-danger mb-2 py-2">
-                    <div><strong>Account:</strong> ${alert.accountNumber || "NA"}</div>
-                    <div><strong>Amount:</strong> ₹ ${alert.amount ?? 0}</div>
-                    <div><strong>Reason:</strong><br/> ${reason}</div>
+                <div class="alert ${isMuted ? "alert-warning" : "alert-danger"} mb-2 py-2">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                            ${isMuted ? mutedDetailsHtml : activeDetailsHtml}
+                        </div>
+                        <button type="button"
+                                class="btn btn-danger text-white px-3 py-2"
+                                style="min-width: 92px;"
+                                onclick="toggleSingleAlertMute('${key.replaceAll("'", "\\'")}', this)">
+                            ${isMuted ? "Unmute" : "Mute"}
+                        </button>
+                    </div>
+                    ${isMuted ? "" : `<div class="mt-1"><strong>Reason:</strong><br/> ${reason}</div>`}
                     <div class="small text-muted mt-1">${timestamp}</div>
                 </div>
             `;
@@ -363,16 +500,123 @@
                 }
                 return response.json();
             })
-            .then(data => renderAlerts(data))
+            .then(data => {
+                renderAlerts(data);
+                setLastRefreshed("alertsLastRefreshed");
+            })
             .catch(() => {
                 renderAlerts([]);
+                setLastRefreshed("alertsLastRefreshed");
             });
+    }
+
+    function setLastRefreshed(targetId) {
+        const el = document.getElementById(targetId);
+        if (!el) return;
+        el.innerText = new Date().toLocaleTimeString();
+    }
+
+    function getAlertKey(alert) {
+        const account = alert?.accountNumber ?? "NA";
+        const amount = alert?.amount ?? "0";
+        const timestamp = alert?.timestamp ?? "NA";
+        return `${account}|${amount}|${timestamp}`;
+    }
+
+    function toggleSingleAlertMute(alertKey, buttonEl) {
+        if (mutedAlertKeys[alertKey]) {
+            delete mutedAlertKeys[alertKey];
+            localStorage.setItem(mutedAlertKeysStorageKey, JSON.stringify(mutedAlertKeys));
+        } else {
+            mutedAlertKeys[alertKey] = true;
+            localStorage.setItem(mutedAlertKeysStorageKey, JSON.stringify(mutedAlertKeys));
+        }
+        loadAlerts();
+    }
+
+    function updateMuteButtonState() {
+        const btn = document.getElementById("alertsMuteBtn");
+        if (!btn) return;
+        if (alertsMuted) {
+            btn.innerText = "Unmute Alerts";
+            btn.classList.add("btn-danger", "text-white", "px-3", "py-2");
+        } else {
+            btn.innerText = "Mute Alerts";
+            btn.classList.add("btn-danger", "text-white", "px-3", "py-2");
+        }
+    }
+
+    function toggleAlertsMute() {
+        alertsMuted = !alertsMuted;
+        localStorage.setItem(alertsMutedStorageKey, alertsMuted ? "true" : "false");
+        updateMuteButtonState();
+        loadAlerts();
+    }
+
+    function refreshAlertsNow() {
+        loadAlerts();
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+
+    function formatLogTime(isoDateTime) {
+        if (!isoDateTime) return "NA";
+        const dt = new Date(isoDateTime);
+        if (Number.isNaN(dt.getTime())) return escapeHtml(isoDateTime);
+        return dt.toLocaleString();
+    }
+
+    function openLogsModal(transactionId) {
+        const body = document.getElementById("logsTableBody");
+        const meta = document.getElementById("logsModalMeta");
+        meta.innerText = `Transaction ID: ${transactionId}`;
+        body.innerHTML = '<tr><td colspan="4" class="text-center text-info">Loading logs...</td></tr>';
+
+        fetch(`/api/fraud/logs/${transactionId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Unable to load fraud logs");
+                }
+                return response.json();
+            })
+            .then(logs => {
+                if (!logs || logs.length === 0) {
+                    body.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No rule logs found for this transaction.</td></tr>';
+                    return;
+                }
+                body.innerHTML = logs.map((log, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${escapeHtml(log.ruleViolated || "NA")}</td>
+                        <td>${log.riskScore ?? 0}</td>
+                        <td>${formatLogTime(log.loggedAt)}</td>
+                    </tr>
+                `).join("");
+            })
+            .catch(() => {
+                body.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Failed to load logs.</td></tr>';
+            });
+
+        if (!logsModalInstance) {
+            const modalEl = document.getElementById("logsModal");
+            logsModalInstance = new bootstrap.Modal(modalEl);
+        }
+        logsModalInstance.show();
     }
 
     function renderCharts(payload) {
         const statusCounts = payload.statusCounts || {};
         const transactionsByDate = payload.transactionsByDate || {};
         const summary = payload.summary || {};
+        const insights = payload.insights || {};
+        const topRiskyAccounts = payload.topRiskyAccounts || [];
 
         document.getElementById("chartModeLabel").innerText = payload.mode || "filtered";
         document.getElementById("bucketLabel").innerText = payload.granularity || "day";
@@ -381,6 +625,8 @@
         document.getElementById("kpiHighRisk").innerText = summary.highRiskTransactions ?? 0;
         document.getElementById("kpiRateAvg").innerText =
             `${summary.fraudRatePercent ?? 0}% / ${summary.averageRiskScore ?? 0}`;
+        renderInsights(insights);
+        renderTopRiskyAccounts(topRiskyAccounts);
 
         const pieCtx = document.getElementById("statusPieChart").getContext("2d");
         const lineCtx = document.getElementById("txLineChart").getContext("2d");
@@ -445,11 +691,63 @@
         });
     }
 
+    function renderInsights(insights) {
+        const highestRisk = insights.highestRiskTransaction;
+        const latestFraud = insights.latestFraudTransaction;
+        const delta = Number(insights.fraudRateDelta ?? 0);
+        const prev = Number(insights.previousFraudRatePercent ?? 0);
+
+        document.getElementById("insightHighestRisk").innerText = highestRisk
+            ? `#${highestRisk.id} | ${highestRisk.accountNumber || "NA"} | Risk ${highestRisk.riskScore ?? 0}`
+            : "NA";
+
+        document.getElementById("insightLatestFraud").innerText = latestFraud
+            ? `#${latestFraud.id} | ${latestFraud.accountNumber || "NA"}`
+            : "NA";
+
+        const sign = delta > 0 ? "+" : "";
+        document.getElementById("insightFraudDelta").innerText = `${sign}${delta.toFixed(2)}% (prev ${prev.toFixed(2)}%)`;
+    }
+
+    function renderTopRiskyAccounts(rows) {
+        const body = document.getElementById("topRiskyAccountsBody");
+        if (!rows || rows.length === 0) {
+            body.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No data</td></tr>';
+            return;
+        }
+        body.innerHTML = rows.map(row => `
+            <tr>
+                <td>${escapeHtml(row.accountNumber || "NA")}</td>
+                <td>${Number(row.avgRiskScore ?? 0).toFixed(2)}</td>
+                <td>${row.fraudTransactions ?? 0}</td>
+                <td>${row.totalTransactions ?? 0}</td>
+            </tr>
+        `).join("");
+    }
+
+    alertsMuted = localStorage.getItem(alertsMutedStorageKey) === "true";
+    try {
+        mutedAlertKeys = JSON.parse(localStorage.getItem(mutedAlertKeysStorageKey) || "{}");
+    } catch (e) {
+        mutedAlertKeys = {};
+    }
+    updateMuteButtonState();
     loadAlerts();
     if (alertsPoller) {
         clearInterval(alertsPoller);
     }
     alertsPoller = setInterval(loadAlerts, 7000);
+
+    ["filterStatus", "filterFromDate", "filterToDate", "filterAccountNumber"]
+        .forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener("change", () => {
+                if (document.getElementById("analyticsMode").value === "filtered") {
+                    loadAnalytics();
+                }
+            });
+        });
 
     loadAnalytics();
 </script>

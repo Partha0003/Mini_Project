@@ -100,9 +100,99 @@ public class AdminDashboardService {
         summary.put("averageRiskScore", round2(avgRisk));
         summary.put("fraudRatePercent", round2(fraudRate));
         response.put("summary", summary);
+
+        response.put("insights", buildInsights(source, fraudRate));
+        response.put("topRiskyAccounts", buildTopRiskyAccounts(source, 5));
         response.put("hasEnoughTrendData", dated.size() >= 4 && uniqueDateBuckets(dated, resolvedGranularity) >= 2);
 
         return response;
+    }
+
+    private Map<String, Object> buildInsights(List<Transaction> source, double currentFraudRate) {
+        Map<String, Object> insights = new LinkedHashMap<>();
+
+        Transaction highestRisk = source.stream()
+                .filter(t -> t.getRiskScore() != null)
+                .max(Comparator.comparing(Transaction::getRiskScore))
+                .orElse(null);
+
+        Transaction latestFraud = source.stream()
+                .filter(t -> "FRAUD".equals(t.getStatus()) && t.getTransactionTime() != null)
+                .max(Comparator.comparing(Transaction::getTransactionTime))
+                .orElse(null);
+
+        List<Transaction> sortedByTime = source.stream()
+                .filter(t -> t.getTransactionTime() != null)
+                .sorted(Comparator.comparing(Transaction::getTransactionTime))
+                .collect(Collectors.toList());
+        int split = sortedByTime.size() / 2;
+        List<Transaction> firstHalf = split > 0 ? sortedByTime.subList(0, split) : List.of();
+        double previousFraudRate = calculateFraudRate(firstHalf);
+
+        insights.put("highestRiskTransaction", toInsightTransaction(highestRisk));
+        insights.put("latestFraudTransaction", toInsightTransaction(latestFraud));
+        insights.put("fraudRateDelta", round2(currentFraudRate - previousFraudRate));
+        insights.put("previousFraudRatePercent", round2(previousFraudRate));
+        return insights;
+    }
+
+    private List<Map<String, Object>> buildTopRiskyAccounts(List<Transaction> source, int limit) {
+        Map<String, List<Transaction>> byAccount = source.stream()
+                .filter(t -> t.getAccountNumber() != null && !t.getAccountNumber().isBlank())
+                .collect(Collectors.groupingBy(Transaction::getAccountNumber));
+
+        return byAccount.entrySet().stream()
+                .map(entry -> {
+                    String account = entry.getKey();
+                    List<Transaction> txns = entry.getValue();
+                    double avgRisk = txns.stream()
+                            .filter(t -> t.getRiskScore() != null)
+                            .mapToInt(Transaction::getRiskScore)
+                            .average()
+                            .orElse(0.0);
+                    long fraudCount = txns.stream().filter(t -> "FRAUD".equals(t.getStatus())).count();
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("accountNumber", account);
+                    row.put("avgRiskScore", round2(avgRisk));
+                    row.put("fraudTransactions", fraudCount);
+                    row.put("totalTransactions", txns.size());
+                    return row;
+                })
+                .sorted((a, b) -> {
+                    Double avgB = ((Number) b.get("avgRiskScore")).doubleValue();
+                    Double avgA = ((Number) a.get("avgRiskScore")).doubleValue();
+                    int byRisk = avgB.compareTo(avgA);
+                    if (byRisk != 0) {
+                        return byRisk;
+                    }
+                    Long fraudB = ((Number) b.get("fraudTransactions")).longValue();
+                    Long fraudA = ((Number) a.get("fraudTransactions")).longValue();
+                    return fraudB.compareTo(fraudA);
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    private double calculateFraudRate(List<Transaction> txns) {
+        if (txns == null || txns.isEmpty()) {
+            return 0.0;
+        }
+        long fraudCount = txns.stream().filter(t -> "FRAUD".equals(t.getStatus())).count();
+        return (fraudCount * 100.0) / txns.size();
+    }
+
+    private Map<String, Object> toInsightTransaction(Transaction tx) {
+        if (tx == null) {
+            return null;
+        }
+        Map<String, Object> value = new LinkedHashMap<>();
+        value.put("id", tx.getId());
+        value.put("accountNumber", tx.getAccountNumber());
+        value.put("amount", tx.getAmount());
+        value.put("riskScore", tx.getRiskScore());
+        value.put("status", tx.getStatus());
+        value.put("transactionTime", tx.getTransactionTime());
+        return value;
     }
 
     private Map<String, Number> groupForTrend(

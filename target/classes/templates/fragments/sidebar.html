@@ -10,37 +10,50 @@
             <span class="badge bg-secondary ms-1" sec:authentication="principal.authorities">ROLE_USER</span>
         </div>
         <ul class="nav flex-column">
+            <li class="nav-item text-uppercase text-secondary small mt-1 mb-1">Monitoring</li>
 
             <li class="nav-item">
-                <a class="nav-link text-white" th:href="@{/dashboard}">
+                <a class="nav-link text-white"
+                   data-path-prefix="/dashboard"
+                   th:href="@{/dashboard}">
                     Transaction Details
                 </a>
             </li>
 
             <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-                <a class="nav-link text-info" th:href="@{/admin/dashboard}">
+                <a class="nav-link text-info"
+                   data-path-prefix="/admin/dashboard"
+                   th:href="@{/admin/dashboard}">
                     Admin Dashboard
                 </a>
             </li>
 
+            <li class="nav-item text-uppercase text-secondary small mt-3 mb-1">Reports</li>
             <li class="nav-item">
-                <a class="nav-link text-danger" th:href="@{/fraud-report}">
+                <a class="nav-link text-danger"
+                   data-path-prefix="/fraud-report"
+                   th:href="@{/fraud-report}">
                     Fraud Report
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link text-warning" th:href="@{/suspicious-report}">
+                <a class="nav-link text-warning"
+                   data-path-prefix="/suspicious-report"
+                   th:href="@{/suspicious-report}">
                     Suspicious Report
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link text-success" th:href="@{/normal-report}">
+                <a class="nav-link text-success"
+                   data-path-prefix="/normal-report"
+                   th:href="@{/normal-report}">
                     Normal Report
                 </a>
             </li>
 
+            <li class="nav-item text-uppercase text-secondary small mt-3 mb-1">Session</li>
             <li class="nav-item mt-3">
                 <form th:action="@{/logout}" method="post" class="m-0 p-0">
                     <button type="submit" class="nav-link text-white btn btn-link p-0 text-start">
@@ -52,6 +65,21 @@
         </ul>
     </div>
 </div>
+
+<script>
+    (function markActiveSidebarLink() {
+        const path = window.location.pathname || "";
+        const links = document.querySelectorAll("[data-path-prefix]");
+        links.forEach(link => {
+            const prefix = link.getAttribute("data-path-prefix");
+            const isDashboardRoot = (path === "/" && prefix === "/dashboard");
+            const isActive = isDashboardRoot || path.startsWith(prefix);
+            if (isActive) {
+                link.classList.add("active", "fw-semibold", "bg-secondary", "rounded", "px-2");
+            }
+        });
+    })();
+</script>
 
 </body>
 </html>
