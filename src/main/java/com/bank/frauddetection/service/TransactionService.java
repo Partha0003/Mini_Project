@@ -8,12 +8,14 @@ import com.bank.frauddetection.model.FraudStatus;
 import com.bank.frauddetection.model.Transaction;
 import com.bank.frauddetection.repository.FraudLogRepository;
 import com.bank.frauddetection.repository.TransactionRepository;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -41,6 +43,11 @@ public class TransactionService {
     @Autowired
     private FraudAlertService fraudAlertService;
 
+    @EventListener(ApplicationReadyEvent.class)
+    public void normalizeExistingAccountNumbersOnStartup() {
+        transactionRepository.normalizeAllAccountNumbers();
+    }
+
     public List<Transaction> getAll() {
         return transactionRepository.findAll();
     }
@@ -54,6 +61,7 @@ public class TransactionService {
     }
 
     public Transaction createTransaction(Transaction transaction) {
+        transaction.setAccountNumber(normalizeAccountNumber(transaction.getAccountNumber()));
         FraudCheckResult checkResult = fraudDetectionService.analyzeTransaction(transaction);
         int riskScore = checkResult.getTotalRisk();
 
@@ -202,5 +210,22 @@ public class TransactionService {
         if (!logs.isEmpty()) {
             fraudLogRepository.saveAll(logs);
         }
+    }
+
+    private String normalizeAccountNumber(String accountNumber) {
+        if (accountNumber == null) {
+            return null;
+        }
+
+        String cleaned = accountNumber.trim().toUpperCase();
+        if (cleaned.isEmpty()) {
+            return cleaned;
+        }
+
+        if (cleaned.length() >= 8) {
+            return cleaned.substring(0, 8);
+        }
+
+        return "0".repeat(8 - cleaned.length()) + cleaned;
     }
 }

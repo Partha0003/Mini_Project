@@ -14,7 +14,7 @@
     <div class="flex-fill p-4 text-white">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="mb-0">Admin Dashboard</h2>
-            <a class="btn btn-outline-light" sec:authorize="hasRole('ADMIN')"
+            <a class="btn btn-outline-light" sec:authorize="hasRole('ADMIN')" id="exportFilteredBtn"
                th:href="@{/admin/export/excel(
                     status=${filter.status},
                     fromDate=${filter.fromDate},
@@ -356,6 +356,8 @@
     let lineChart;
     let alertsPoller;
     let logsModalInstance;
+    let lastAlertSignature = "";
+    let audioCtx;
     const alertsMutedStorageKey = "adminAlertsMuted";
     const mutedAlertKeysStorageKey = "adminMutedAlertKeys";
     let alertsMuted = false;
@@ -421,6 +423,7 @@
             if (accountNumber) params.append("accountNumber", accountNumber);
         }
 
+        refreshExportLink();
         fetch("/api/admin/analytics?" + params.toString())
             .then(response => response.json())
             .then(data => {
@@ -490,6 +493,7 @@
         }).join("");
 
         container.innerHTML = html;
+        maybePlayAlertSound(alerts);
     }
 
     function loadAlerts() {
@@ -555,6 +559,54 @@
 
     function refreshAlertsNow() {
         loadAlerts();
+    }
+
+    function refreshExportLink() {
+        const exportBtn = document.getElementById("exportFilteredBtn");
+        if (!exportBtn) return;
+        const params = new URLSearchParams();
+        const status = document.getElementById("filterStatus")?.value || "";
+        const fromDate = document.getElementById("filterFromDate")?.value || "";
+        const toDate = document.getElementById("filterToDate")?.value || "";
+        const accountNumber = document.getElementById("filterAccountNumber")?.value || "";
+
+        if (status) params.append("status", status);
+        if (fromDate) params.append("fromDate", fromDate);
+        if (toDate) params.append("toDate", toDate);
+        if (accountNumber) params.append("accountNumber", accountNumber);
+
+        exportBtn.href = `/admin/export/excel?${params.toString()}`;
+    }
+
+    function maybePlayAlertSound(alerts) {
+        if (alertsMuted || !alerts || alerts.length === 0) {
+            return;
+        }
+        const signature = (alerts[0].accountNumber || "NA") + "|" + (alerts[0].timestamp || "NA");
+        if (signature === lastAlertSignature) {
+            return;
+        }
+        lastAlertSignature = signature;
+        playBeep();
+    }
+
+    function playBeep() {
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            const oscillator = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            oscillator.type = "sine";
+            oscillator.frequency.value = 880;
+            gain.gain.value = 0.06;
+            oscillator.connect(gain);
+            gain.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.18);
+        } catch (e) {
+            // Ignore if browser blocks autoplay sound.
+        }
     }
 
     function escapeHtml(value) {
@@ -646,6 +698,17 @@
                     ],
                     backgroundColor: ["#dc3545", "#ffc107", "#198754"]
                 }]
+            },
+            options: {
+                onClick: (_evt, elements) => {
+                    if (!elements || elements.length === 0) return;
+                    const idx = elements[0].index;
+                    const label = ["FRAUD", "SUSPICIOUS", "NORMAL"][idx];
+                    const statusSelect = document.getElementById("filterStatus");
+                    if (!statusSelect || !label) return;
+                    statusSelect.value = label;
+                    applyFilters();
+                }
             }
         });
 
@@ -725,6 +788,20 @@
         `).join("");
     }
 
+    function applyFilters() {
+        const params = new URLSearchParams();
+        const status = document.getElementById("filterStatus")?.value || "";
+        const fromDate = document.getElementById("filterFromDate")?.value || "";
+        const toDate = document.getElementById("filterToDate")?.value || "";
+        const accountNumber = document.getElementById("filterAccountNumber")?.value || "";
+        if (status) params.append("status", status);
+        if (fromDate) params.append("fromDate", fromDate);
+        if (toDate) params.append("toDate", toDate);
+        if (accountNumber) params.append("accountNumber", accountNumber);
+        params.append("size", document.querySelector("select[name='size']")?.value || "10");
+        window.location.href = `/admin/dashboard?${params.toString()}`;
+    }
+
     alertsMuted = localStorage.getItem(alertsMutedStorageKey) === "true";
     try {
         mutedAlertKeys = JSON.parse(localStorage.getItem(mutedAlertKeysStorageKey) || "{}");
@@ -743,12 +820,14 @@
             const el = document.getElementById(id);
             if (!el) return;
             el.addEventListener("change", () => {
+                refreshExportLink();
                 if (document.getElementById("analyticsMode").value === "filtered") {
                     loadAnalytics();
                 }
             });
         });
 
+    refreshExportLink();
     loadAnalytics();
 </script>
 

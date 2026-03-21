@@ -43,7 +43,16 @@
 
         <!-- ADD FORM -->
         <div class="card p-4 shadow mb-4 bg-dark text-white">
-            <h4>Add New Transaction</h4>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h4 class="mb-0">Add New Transaction</h4>
+                <button type="button"
+                        sec:authorize="hasRole('ADMIN')"
+                        class="btn btn-outline-info"
+                        id="simulateTenBtn"
+                        onclick="simulateTransactions(10)">
+                    Simulate 10 Transactions
+                </button>
+            </div>
 
             <form id="createTransactionForm" th:action="@{/transaction/create}" method="post" class="row g-3 needs-validation" novalidate>
 
@@ -292,6 +301,32 @@
             logsModalInstance = new bootstrap.Modal(modalEl);
         }
         logsModalInstance.show();
+    }
+
+    function simulateTransactions(count) {
+        const btn = document.getElementById("simulateTenBtn");
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "Simulating...";
+        }
+
+        fetch(`/api/gateway/simulate/${count}`, {method: "POST"})
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Simulation failed");
+                }
+                return response.text();
+            })
+            .then(() => {
+                window.location.reload();
+            })
+            .catch(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = `Simulate ${count} Transactions`;
+                }
+                alert("Failed to simulate transactions.");
+            });
     }
 </script>
 
